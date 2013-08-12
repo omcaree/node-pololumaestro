@@ -1,23 +1,36 @@
-var SerialPort = require("serialport").SerialPort
+var SerialPort = require("serialport").SerialPort;
+var EventEmitter  = require("events").EventEmitter;;
 
 var DEBUG = false;
 
 var maestro = function(comport) {
+	EventEmitter.call(this);
 	this.serialPort = new SerialPort(comport, {
 		baudrate: 115200
-	});
+	}, false);
 	var self = this;
-	this.serialPort.on("open", function() {
+	this.serialPort.open(function() {
 		self.connected = true;
+		self.emit("ready");
 		if (DEBUG) {
 			console.log("pololu-maestro: Connected");
 		}
 	});
 }
 
+maestro.super_ = EventEmitter;
+maestro.prototype = Object.create(EventEmitter.prototype, {
+    constructor: {
+        value: maestro,
+        enumerable: false
+    }
+});
+
 maestro.prototype.setPWM = function(channel,pwm) {
 	if (!this.connected) {
-		console.warn("pololu-maestro: Serial Port not open, ignoring setPWM call");
+		if (DEBUG) {
+			console.warn("pololu-maestro: Serial Port not open, ignoring setPWM call");
+		}
 		return 0;
 	}
 	if (DEBUG) {
