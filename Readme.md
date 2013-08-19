@@ -1,9 +1,25 @@
 node-pololumaestro
 ==================
 
+[![Dependency Status](https://david-dm.org/omcaree/node-pololumaestro.png)](https://david-dm.org/omcaree/node-pololumaestro)
+
 This module allows control of the Pololu Maestro range of servo controllers from Node.js allowing your project to interact with the world!
 
-Updates as of v2.0.0:
+N.b. v2.0.0 breaks compatibilty with v1.1.0.  To fix up your code, change the setPWM method to setTarget.
+
+So where you were previously setting the target of channel 0 like this:
+
+```javascript
+maestro.setPWM(0, 1500);
+```
+
+You should now use:
+
+```javascript
+maestro.setTarget(0, 1500);
+```
+
+Updates as of v2.0.0 (contributed by [achingbrain](https://github.com/achingbrain)):
  * Refactored to implement full compact protocol
  * Added unit testing suite
 
@@ -84,7 +100,7 @@ maestro.on("ready", function() {
 	// read a digital input on channel 12
 	maestro.digitalRead(12, function(value) {
 		// value is a boolean
-	};
+	});
 
 	// write to a digital output on channel 1
 	maestro.digitalWrite(1, true);
