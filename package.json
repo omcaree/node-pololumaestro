@@ -1,17 +1,24 @@
 {
   "name": "pololu-maestro",
-  "version": "1.1.0",
+  "version": "2.0.0",
   "description": "Module to take control of Pololu Maestro servo controllers",
-  "main": "src/pololumaestro.js",
+  "main": "lib/pololumaestro.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "istanbul cover nodeunit test"
   },
   "repository": {
     "type": "git",
     "url": "git://github.com/omcaree/node-pololumaestro.git"
   },
   "dependencies": {
-	"serialport": ""
+    "serialport": ">=1.1.3",
+    "winston": ">=0.7.2"
+  },
+  "devDependencies": {
+    "nodeunit": "~0.8.1",
+    "jsmockito": "~1.0.4",
+    "jshamcrest": "~0.6.7",
+    "istanbul": "~0.1.43"
   },
   "keywords": [
     "node",
