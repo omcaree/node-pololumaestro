@@ -1,48 +1,27 @@
-node-pololumaestro
-==================
+# node-pololumaestro
 
 [![Dependency Status](https://david-dm.org/omcaree/node-pololumaestro.png)](https://david-dm.org/omcaree/node-pololumaestro)
+[![devDependency Status](https://david-dm.org/omcaree/node-pololumaestro/dev-status.png)](https://david-dm.org/omcaree/node-pololumaestro#info=devDependencies)
 
 This module allows control of the Pololu Maestro range of servo controllers from Node.js allowing your project to interact with the world!
 
-N.b. v2.0.0 breaks compatibilty with v1.1.0.  To fix up your code, change the setPWM method to setTarget.
+See the [API documentation](http://omcaree.github.io/node-pololumaestro) for more information.
 
-So where you were previously setting the target of channel 0 like this:
+## Dependencies
 
-```javascript
-maestro.setPWM(0, 1500);
-```
-
-You should now use:
-
-```javascript
-maestro.setTarget(0, 1500);
-```
-
-Updates as of v2.0.0 (contributed by [achingbrain](https://github.com/achingbrain)):
- * Refactored to implement full compact protocol
- * Added unit testing suite
-
-Updates as of v1.1.0:
- * Removed [serialport](https://github.com/voodootikigod/node-serialport) v1.06 dependency to be compatible with node v0.10.x (Thanks [achingbrain](https://github.com/achingbrain)!)
- * Added a "ready" event to prevent calls to setPWM being made before the serial port is open
-
-Dependencies
-============
 This module requires [node-serialport](https://github.com/voodootikigod/node-serialport) in order to communicate with the Maestro, this should be installed automatically.
 
 It also uses [Winston](https://github.com/flatiron/winston) for logging.
 
-Installation
-============
+## Installation
+
 Install this module with
 
 ```
 npm install pololumaestro
 ```
 
-Hacking
-=======
+## Hacking
 
 Run unit tests with:
 
@@ -54,8 +33,7 @@ A coverage report should then be available in coverage/lcov-report/index.html
 
 Please submit tests along with new functionality
 
-Usage
-=====
+## Usage
 
 Here's a minimal example of how to use the module
 
@@ -132,4 +110,42 @@ maestro.on("ready", function() {
 		// status is a boolean
 	});
 });
+```
+
+## Version history
+
+### v2.1.0
+
+Updates  (contributed by [achingbrain](https://github.com/achingbrain)):
+
+ * Adds support for USB Dual Port mode
+ * Adds generated documentation
+
+### v2.0.0
+
+Updates (contributed by [achingbrain](https://github.com/achingbrain)):
+
+ * Refactored to implement full compact protocol
+ * Added unit testing suite
+
+### v1.1.0
+
+ * Removed [serialport](https://github.com/voodootikigod/node-serialport) v1.06 dependency to be compatible with node v0.10.x (Thanks [achingbrain](https://github.com/achingbrain)!)
+ * Added a "ready" event to prevent calls to setPWM being made before the serial port is open
+
+
+## Upgrading
+
+N.b. v2.0.0 breaks compatibilty with v1.1.0.  To fix up your code, change the setPWM method to setTarget.
+
+So where you were previously setting the target of channel 0 like this:
+
+```javascript
+maestro.setPWM(0, 1500);
+```
+
+You should now use:
+
+```javascript
+maestro.setTarget(0, 1500);
 ```

@@ -1,0 +1,6 @@
+{
+	"glob": ["lib/**/*.js", "Readme.md"],
+	"index": "Readme.md",
+	"whitespace-after-token": false,
+	"repository-url": "https://github.com/omcaree/node-pololumaestro"
+}

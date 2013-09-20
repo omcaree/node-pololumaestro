@@ -1,10 +1,12 @@
 {
   "name": "pololu-maestro",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "Module to take control of Pololu Maestro servo controllers",
   "main": "lib/pololumaestro.js",
   "scripts": {
-    "test": "istanbul cover nodeunit test"
+    "test": "istanbul cover nodeunit test",
+    "docs": "groc",
+    "docs-publish": "groc --github"
   },
   "repository": {
     "type": "git",
@@ -17,8 +19,9 @@
   "devDependencies": {
     "nodeunit": "~0.8.1",
     "jsmockito": "~1.0.4",
-    "jshamcrest": "~0.6.7",
-    "istanbul": "~0.1.43"
+    "jshamcrest": "~0.7.0",
+    "istanbul": "~0.1.43",
+    "groc": ">=0.6.0"
   },
   "keywords": [
     "node",
@@ -29,6 +32,5 @@
   ],
   "author": "Owen McAree",
   "license": "BSD",
-  "readmeFilename": "Readme.md",
-  "gitHead": "40fd83648057d380f81d37071e17923cd452bf04"
+  "readmeFilename": "Readme.md"
 }

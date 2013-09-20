@@ -1,5 +1,6 @@
 var PololuMaestro = require("../lib/pololumaestro"),
 	SerialPortWrapper = require("../lib/serialportwrapper"),
+	SerialModes = require("../lib/serialmodes"),
 	LOG = require("winston"),
 	JsMockito = require("jsmockito").JsMockito,
 	JsHamcrest = require('jshamcrest').JsHamcrest;
@@ -332,7 +333,9 @@ module.exports = {
 			input: [0xA7, 0x01],
 			output: [0x0A, 0x00]
 		});
-		
+
+		this._maestro._mode = SerialModes.USB_DUAL_PORT;
+
 		this._maestro.restartScriptAtSubroutine(1, function(data) {
 			received = data;
 		});
@@ -358,6 +361,8 @@ module.exports = {
 			input: [0xA8, 0x01, 0x0A, 0x00],
 			output: [0x0A, 0x00]
 		});
+
+		this._maestro._mode = SerialModes.USB_DUAL_PORT;
 
 		this._maestro.restartScriptAtSubroutineWithParameter(1, 10, function(data) {
 			received = data;
