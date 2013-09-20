@@ -1,0 +1,61 @@
+<!DOCTYPE html><html lang="en"><head><title>serialportwrapper-chained</title></head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0"><meta name="groc-relative-root" content=""><meta name="groc-document-path" content="serialportwrapper-chained"><meta name="groc-project-path" content="lib/serialportwrapper-chained.js"><meta name="groc-github-url" content="https://github.com/omcaree/node-pololumaestro"><link rel="stylesheet" type="text/css" media="all" href="assets/style.css"><script type="text/javascript" src="assets/behavior.js"></script><body><div id="meta"><div class="file-path"><a href="https://github.com/omcaree/node-pololumaestro/blob/master/lib/serialportwrapper-chained.js">lib/serialportwrapper-chained.js</a></div></div><div id="document"><div class="segment"><div class="comments "><div class="wrapper"><h1 id="chainedmodeserialportwrapper">ChainedModeSerialPortWrapper</h1></div></div></div><div class="segment"><div class="code folded"><div class="marker wrapper"><span class="c1">// imports</span></div><div class="wrapper"><span class="kd">var</span> <span class="nx">SerialPort</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s2">&quot;serialport&quot;</span><span class="p">).</span><span class="nx">SerialPort</span><span class="p">,</span>
+  <span class="nx">LOG</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s2">&quot;winston&quot;</span><span class="p">),</span>
+  <span class="nx">SerialPortWrapper</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s2">&quot;./serialportwrapper&quot;</span><span class="p">);</span></div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Implements USB Chained mode.  In this mode the Maestro will read and write
+to the command port so only one port is required.  Scripts running on the
+Maestro will <em>not</em> be able to use <code>serial_send_byte</code> to communicate with the
+host computer as it writes to the TX port which is not connected to anything.</p>
+
+<p>If you want to communicate with the host computer, please use USB Dual Port
+mode instead.</p>
+
+<pre><code class="javascript">new ChainedModeSerialPortWrapper("/dev/COM1", 115200);
+</code></pre></div></div><div class="code"><div class="wrapper"><span class="kd">var</span> <span class="nx">ChainedModeSerialPortWrapper</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">comPort</span><span class="p">,</span> <span class="nx">baudRate</span><span class="p">)</span> <span class="p">{</span>
+  <span class="k">if</span><span class="p">(</span><span class="o">!</span><span class="nx">comPort</span> <span class="o">&amp;&amp;</span> <span class="o">!</span><span class="nx">baudRate</span><span class="p">)</span> <span class="p">{</span>
+    <span class="nx">LOG</span><span class="p">.</span><span class="nx">error</span><span class="p">(</span><span class="s2">&quot;No port or baud rate specified.&quot;</span><span class="p">);</span>
+
+    <span class="k">return</span><span class="p">;</span>
+  <span class="p">}</span></div></div></div><div class="segment"><div class="code"><div class="wrapper">  <span class="c1">// signifies we are waiting for a read</span>
+  <span class="k">this</span><span class="p">.</span><span class="nx">_awaitingRead</span> <span class="o">=</span> <span class="kc">false</span><span class="p">;</span>
+
+  <span class="k">if</span><span class="p">(</span><span class="nx">comPort</span> <span class="k">instanceof</span> <span class="nx">SerialPort</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">this</span><span class="p">.</span><span class="nx">_serialPort</span> <span class="o">=</span> <span class="nx">comPort</span><span class="p">;</span>
+  <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+    <span class="k">this</span><span class="p">.</span><span class="nx">_serialPort</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">SerialPort</span><span class="p">(</span><span class="nx">comPort</span><span class="p">,</span> <span class="p">{</span>
+      <span class="nx">baudrate</span><span class="o">:</span> <span class="nx">baudRate</span>
+    <span class="p">});</span>
+  <span class="p">}</span>
+
+  <span class="k">this</span><span class="p">.</span><span class="nx">_serialPort</span><span class="p">.</span><span class="nx">once</span><span class="p">(</span><span class="s2">&quot;open&quot;</span><span class="p">,</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+    <span class="k">this</span><span class="p">.</span><span class="nx">_connected</span> <span class="o">=</span> <span class="kc">true</span><span class="p">;</span>
+
+    <span class="nx">LOG</span><span class="p">.</span><span class="nx">info</span><span class="p">(</span><span class="s2">&quot;pololu-maestro: Connected to &quot;</span> <span class="o">+</span> <span class="nx">comPort</span><span class="p">);</span>
+
+    <span class="k">this</span><span class="p">.</span><span class="nx">emit</span><span class="p">(</span><span class="s2">&quot;open&quot;</span><span class="p">);</span>
+  <span class="p">}.</span><span class="nx">bind</span><span class="p">(</span><span class="k">this</span><span class="p">));</span>
+<span class="p">};</span></div></div></div><div class="segment"><div class="code"><div class="wrapper"><span class="c1">// extends SerialPortWrapper</span>
+<span class="nx">ChainedModeSerialPortWrapper</span><span class="p">.</span><span class="nx">prototype</span> <span class="o">=</span> <span class="nb">Object</span><span class="p">.</span><span class="nx">create</span><span class="p">(</span><span class="nx">SerialPortWrapper</span><span class="p">.</span><span class="nx">prototype</span><span class="p">);</span>
+
+<span class="nx">ChainedModeSerialPortWrapper</span><span class="p">.</span><span class="nx">prototype</span><span class="p">.</span><span class="nx">writeAndRead</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">bytes</span><span class="p">,</span> <span class="nx">onData</span><span class="p">)</span> <span class="p">{</span>
+  <span class="k">if</span><span class="p">(</span><span class="o">!</span><span class="k">this</span><span class="p">.</span><span class="nx">_connected</span><span class="p">)</span> <span class="p">{</span>
+    <span class="nx">LOG</span><span class="p">.</span><span class="nx">warn</span><span class="p">(</span><span class="s2">&quot;pololu-maestro: Not connected yet, deferring read until com port is available.&quot;</span><span class="p">);</span>
+
+    <span class="k">this</span><span class="p">.</span><span class="nx">once</span><span class="p">(</span><span class="s2">&quot;open&quot;</span><span class="p">,</span> <span class="k">this</span><span class="p">.</span><span class="nx">writeAndRead</span><span class="p">.</span><span class="nx">bind</span><span class="p">(</span><span class="k">this</span><span class="p">,</span> <span class="nx">bytes</span><span class="p">,</span> <span class="nx">onData</span><span class="p">));</span>
+
+    <span class="k">return</span><span class="p">;</span>
+  <span class="p">}</span>
+
+  <span class="k">if</span><span class="p">(</span><span class="k">this</span><span class="p">.</span><span class="nx">_awaitingRead</span><span class="p">)</span> <span class="p">{</span></div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>defer until the request ahead of us has read from the serial port</p></div></div><div class="code"><div class="wrapper">    <span class="k">this</span><span class="p">.</span><span class="nx">once</span><span class="p">(</span><span class="s2">&quot;read&quot;</span><span class="p">,</span> <span class="k">this</span><span class="p">.</span><span class="nx">writeAndRead</span><span class="p">.</span><span class="nx">bind</span><span class="p">(</span><span class="k">this</span><span class="p">,</span> <span class="nx">bytes</span><span class="p">,</span> <span class="nx">onData</span><span class="p">));</span>
+
+    <span class="k">return</span><span class="p">;</span>
+  <span class="p">}</span></div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>lock the read queue - this will defer any more writes until we've read some data</p></div></div><div class="code"><div class="wrapper">  <span class="k">this</span><span class="p">.</span><span class="nx">_awaitingRead</span> <span class="o">=</span> <span class="kc">true</span><span class="p">;</span>
+  <span class="k">this</span><span class="p">.</span><span class="nx">_serialPort</span><span class="p">.</span><span class="nx">once</span><span class="p">(</span><span class="s2">&quot;data&quot;</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">data</span><span class="p">)</span> <span class="p">{</span></div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>we've read data so decrement the counter to let other requests write</p></div></div><div class="code"><div class="wrapper">    <span class="k">this</span><span class="p">.</span><span class="nx">_awaitingRead</span> <span class="o">=</span> <span class="kc">false</span><span class="p">;</span>
+
+    <span class="k">if</span><span class="p">(</span><span class="nx">onData</span><span class="p">)</span> <span class="p">{</span>
+      <span class="nx">onData</span><span class="p">(</span><span class="nx">data</span><span class="p">);</span>
+    <span class="p">}</span></div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>let any other writes commence</p></div></div><div class="code"><div class="wrapper">    <span class="k">this</span><span class="p">.</span><span class="nx">emit</span><span class="p">(</span><span class="s2">&quot;read&quot;</span><span class="p">);</span>
+  <span class="p">}.</span><span class="nx">bind</span><span class="p">(</span><span class="k">this</span><span class="p">));</span>
+
+  <span class="k">this</span><span class="p">.</span><span class="nx">_write</span><span class="p">(</span><span class="nx">bytes</span><span class="p">);</span>
+<span class="p">};</span>
+
+<span class="nx">module</span><span class="p">.</span><span class="nx">exports</span> <span class="o">=</span> <span class="nx">ChainedModeSerialPortWrapper</span><span class="p">;</span></div></div></div></div></body></html>

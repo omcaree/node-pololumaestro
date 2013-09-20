@@ -1,0 +1,127 @@
+<!DOCTYPE html><html lang="en"><head><title>Readme</title></head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0"><meta name="groc-relative-root" content=""><meta name="groc-document-path" content="Readme"><meta name="groc-project-path" content="Readme.md"><meta name="groc-github-url" content="https://github.com/omcaree/node-pololumaestro"><link rel="stylesheet" type="text/css" media="all" href="assets/style.css"><script type="text/javascript" src="assets/behavior.js"></script><body><div id="meta"><div class="file-path"><a href="https://github.com/omcaree/node-pololumaestro/blob/master/Readme.md">Readme.md</a></div></div><div id="document"><div class="segment"><div class="comments"><div class="wrapper"><h1 id="node-pololumaestro">node-pololumaestro</h1>
+
+<p><a href="https://david-dm.org/omcaree/node-pololumaestro"><img src="https://david-dm.org/omcaree/node-pololumaestro.png" alt="Dependency Status" title="" /></a></p>
+
+<p>This module allows control of the Pololu Maestro range of servo controllers from Node.js allowing your project to interact with the world!</p>
+
+<p>N.b. v2.0.0 breaks compatibilty with v1.1.0.  To fix up your code, change the setPWM method to setTarget.</p>
+
+<p>So where you were previously setting the target of channel 0 like this:</p>
+
+<pre><code class="javascript">maestro.setPWM(0, 1500);
+</code></pre>
+
+<p>You should now use:</p>
+
+<pre><code class="javascript">maestro.setTarget(0, 1500);
+</code></pre>
+
+<p>Updates as of v2.0.0 (contributed by <a href="https://github.com/achingbrain">achingbrain</a>):
+ * Refactored to implement full compact protocol
+ * Added unit testing suite</p>
+
+<p>Updates as of v1.1.0:
+ * Removed <a href="https://github.com/voodootikigod/node-serialport">serialport</a> v1.06 dependency to be compatible with node v0.10.x (Thanks <a href="https://github.com/achingbrain">achingbrain</a>!)
+ * Added a "ready" event to prevent calls to setPWM being made before the serial port is open</p>
+
+<h1 id="dependencies">Dependencies</h1>
+
+<p>This module requires <a href="https://github.com/voodootikigod/node-serialport">node-serialport</a> in order to communicate with the Maestro, this should be installed automatically.</p>
+
+<p>It also uses <a href="https://github.com/flatiron/winston">Winston</a> for logging.</p>
+
+<h1 id="installation">Installation</h1>
+
+<p>Install this module with</p>
+
+<pre><code>npm install pololumaestro
+</code></pre>
+
+<h1 id="hacking">Hacking</h1>
+
+<p>Run unit tests with:</p>
+
+<pre><code>npm test
+</code></pre>
+
+<p>A coverage report should then be available in coverage/lcov-report/index.html</p>
+
+<p>Please submit tests along with new functionality</p>
+
+<h1 id="usage">Usage</h1>
+
+<p>Here's a minimal example of how to use the module</p>
+
+<pre><code class="javascript">var PololuMaestro = require("pololu-maestro");
+
+//create new instance, specifying control com port and optionally the baud rate
+var maestro = new PololuMaestro("COM17", 115200);
+
+//wait until connection is ready
+maestro.on("ready", function() {
+    // set target of servo on channel 1 to 1500μs
+    maestro.setTarget(1, 1500);
+
+    // set a servo on channel 1 via mini-SSC protocol
+    maestro.set8BitTarget(1, 128);
+
+    // set speed of servo on channel 1
+    maestro.setSpeed(1, 140);
+
+    // set acceleration of servo on channel 1
+    maestro.setAcceleration(1, 128);
+
+    // get the last target value sent to the servo on channel 1
+    maestro.getPosition(1, function(position) {
+        // position is a number
+    });
+
+    // find out if a servo is moving on channel 1
+    maestro.getMovingState(1, function(state) {
+        // state is a boolean
+    });
+
+    // reset all servos to home position
+    maestro.reset();
+
+    // read an analog input on channel 1
+    maestro.analogRead(1, function(value) {
+        // value is a number
+    });
+
+    // read a digital input on channel 12
+    maestro.digitalRead(12, function(value) {
+        // value is a boolean
+    });
+
+    // write to a digital output on channel 1
+    maestro.digitalWrite(1, true);
+
+    // set PWM channel value
+    maestro.setPWM(onTime, period);
+
+    // stop the currently running script
+    maestro.stopScript();
+
+    // run subroutine 1
+    maestro.restartScriptAtSubroutine(1);
+
+    // run subroutine 1 and read the result
+    maestro.restartScriptAtSubroutine(1, function(data) {
+        // data is a Buffer - http://nodejs.org/api/buffer.html
+    });
+
+    // pass an argument to a subroutine
+    maestro.restartScriptAtSubroutineWithParameter(1, 5);
+
+    // pass an argument to a subroute and read the result
+    maestro.restartScriptAtSubroutineWithParameter(1, 5, function(data) {
+        // data is a Buffer - http://nodejs.org/api/buffer.html
+    });
+
+    // find out if any scripts are currently running
+    maestro.getScriptStatus(function(status) {
+        // status is a boolean
+    });
+});
+</code></pre></div></div></div></div></body></html>

@@ -1,0 +1,103 @@
+<!DOCTYPE html><html lang="en"><head><title>serialportwrapper</title></head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0"><meta name="groc-relative-root" content=""><meta name="groc-document-path" content="serialportwrapper"><meta name="groc-project-path" content="lib/serialportwrapper.js"><meta name="groc-github-url" content="https://github.com/omcaree/node-pololumaestro"><link rel="stylesheet" type="text/css" media="all" href="assets/style.css"><script type="text/javascript" src="assets/behavior.js"></script><body><div id="meta"><div class="file-path"><a href="https://github.com/omcaree/node-pololumaestro/blob/master/lib/serialportwrapper.js">lib/serialportwrapper.js</a></div></div><div id="document"><div class="segment"><div class="comments "><div class="wrapper"><h1 id="serialportwrapper">SerialPortWrapper</h1></div></div></div><div class="segment"><div class="code folded"><div class="marker wrapper"><span class="c1">// imports</span></div><div class="wrapper"><span class="kd">var</span> <span class="nx">SerialPort</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s2">&quot;serialport&quot;</span><span class="p">).</span><span class="nx">SerialPort</span><span class="p">,</span>
+  <span class="nx">LOG</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s2">&quot;winston&quot;</span><span class="p">),</span>
+  <span class="nx">EventEmitter</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s2">&quot;events&quot;</span><span class="p">).</span><span class="nx">EventEmitter</span><span class="p">,</span>
+  <span class="nx">ByteUtils</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s2">&quot;./byteutils&quot;</span><span class="p">);</span></div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>node-serialport has sychronous writes but asychronous reads. This presents
+as problem as we can't guarantee which write matches up with which read.</p>
+
+<p>Firmata works around this by prefixing each response from the board with
+known byte patterns - as long as you don't make the same request again before
+the first response has been received you're good.</p>
+
+<p>We don't want to mandate users to install a script to use this, so our 
+"solution" is to defer writing until a response is received after a write 
+that expects a read.</p>
+
+<p>Supports two constructors.  The one you use depends on what mode you have
+your Maestro set to.</p>
+
+<ol>
+<li><p>USB Dual Port:
+new SerialPortWrapper("/dev/COM1", "/dev/COM2");</p></li>
+<li><p>USB Chained:
+new SerialPortWrapper("/dev/COM1", 115200);</p></li>
+</ol></div></div><div class="code"><div class="wrapper"><span class="kd">var</span> <span class="nx">SerialPortWrapper</span> <span class="o">=</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+
+<span class="p">};</span></div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>extends EventEmmiter</p></div></div><div class="code"><div class="wrapper"><span class="nx">SerialPortWrapper</span><span class="p">.</span><span class="nx">prototype</span> <span class="o">=</span> <span class="nb">Object</span><span class="p">.</span><span class="nx">create</span><span class="p">(</span><span class="nx">EventEmitter</span><span class="p">.</span><span class="nx">prototype</span><span class="p">);</span>
+
+<span class="nx">SerialPortWrapper</span><span class="p">.</span><span class="nx">prototype</span><span class="p">.</span><span class="nx">write</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">bytes</span><span class="p">,</span> <span class="nx">onComplete</span><span class="p">)</span> <span class="p">{</span>
+  <span class="nx">LOG</span><span class="p">.</span><span class="nx">info</span><span class="p">(</span><span class="s2">&quot;Writing &quot;</span> <span class="o">+</span> <span class="nx">bytes</span><span class="p">);</span>
+
+  <span class="k">if</span><span class="p">(</span><span class="o">!</span><span class="k">this</span><span class="p">.</span><span class="nx">_connected</span><span class="p">)</span> <span class="p">{</span>
+    <span class="nx">LOG</span><span class="p">.</span><span class="nx">warn</span><span class="p">(</span><span class="s2">&quot;pololu-maestro: Not connected yet, deferring write until com port is available.&quot;</span><span class="p">);</span>
+
+    <span class="k">this</span><span class="p">.</span><span class="nx">once</span><span class="p">(</span><span class="s2">&quot;open&quot;</span><span class="p">,</span> <span class="k">this</span><span class="p">.</span><span class="nx">write</span><span class="p">.</span><span class="nx">bind</span><span class="p">(</span><span class="k">this</span><span class="p">,</span> <span class="nx">bytes</span><span class="p">,</span> <span class="nx">onComplete</span><span class="p">));</span>
+
+    <span class="k">return</span><span class="p">;</span>
+  <span class="p">}</span>
+
+  <span class="k">if</span><span class="p">(</span><span class="k">this</span><span class="p">.</span><span class="nx">_awaitingRead</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">this</span><span class="p">.</span><span class="nx">once</span><span class="p">(</span><span class="s2">&quot;read&quot;</span><span class="p">,</span> <span class="k">this</span><span class="p">.</span><span class="nx">write</span><span class="p">.</span><span class="nx">bind</span><span class="p">(</span><span class="k">this</span><span class="p">,</span> <span class="nx">bytes</span><span class="p">,</span> <span class="nx">onComplete</span><span class="p">));</span>
+
+    <span class="k">return</span><span class="p">;</span>
+  <span class="p">}</span>
+
+  <span class="k">this</span><span class="p">.</span><span class="nx">_write</span><span class="p">(</span><span class="nx">bytes</span><span class="p">,</span> <span class="nx">onComplete</span><span class="p">);</span>
+<span class="p">};</span>
+
+<span class="nx">SerialPortWrapper</span><span class="p">.</span><span class="nx">prototype</span><span class="p">.</span><span class="nx">writeAndRead</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">bytes</span><span class="p">,</span> <span class="nx">onData</span><span class="p">)</span> <span class="p">{</span>
+  <span class="nx">LOG</span><span class="p">.</span><span class="nx">error</span><span class="p">(</span><span class="s2">&quot;SerialPortWrapper#writeAndRead should be overridden by implementing classes&quot;</span><span class="p">);</span>
+<span class="p">};</span>
+
+<span class="nx">SerialPortWrapper</span><span class="p">.</span><span class="nx">prototype</span><span class="p">.</span><span class="nx">_write</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">bytes</span><span class="p">,</span> <span class="nx">onComplete</span><span class="p">)</span> <span class="p">{</span>
+  <span class="k">if</span><span class="p">(</span><span class="o">!</span><span class="nb">Array</span><span class="p">.</span><span class="nx">isArray</span><span class="p">(</span><span class="nx">bytes</span><span class="p">))</span> <span class="p">{</span>
+    <span class="nx">bytes</span> <span class="o">=</span> <span class="p">[</span><span class="nx">bytes</span><span class="p">];</span>
+  <span class="p">}</span>
+
+  <span class="k">this</span><span class="p">.</span><span class="nx">_serialPort</span><span class="p">.</span><span class="nx">write</span><span class="p">(</span><span class="nx">bytes</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">error</span><span class="p">,</span> <span class="nx">bytesWritten</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">if</span><span class="p">(</span><span class="nx">bytesWritten</span> <span class="o">!=</span> <span class="nx">bytes</span><span class="p">.</span><span class="nx">length</span><span class="p">)</span> <span class="p">{</span>
+      <span class="nx">LOG</span><span class="p">.</span><span class="nx">warn</span><span class="p">(</span><span class="s2">&quot;Short write! Wrote &quot;</span> <span class="o">+</span> <span class="nx">bytesWritten</span> <span class="o">+</span> <span class="s2">&quot; of &quot;</span> <span class="o">+</span> <span class="nx">bytes</span><span class="p">.</span><span class="nx">length</span><span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="k">if</span><span class="p">(</span><span class="o">!</span><span class="k">this</span><span class="p">.</span><span class="nx">_detectingError</span><span class="p">)</span> <span class="p">{</span>
+      <span class="k">this</span><span class="p">.</span><span class="nx">_readError</span><span class="p">(</span><span class="nx">onComplete</span><span class="p">);</span>
+    <span class="p">}</span>
+  <span class="p">}.</span><span class="nx">bind</span><span class="p">(</span><span class="k">this</span><span class="p">));</span>
+<span class="p">};</span>
+
+<span class="kd">var</span> <span class="nx">SERIAL_ERRORS</span> <span class="o">=</span> <span class="p">[</span>
+  <span class="p">{</span> <span class="nx">code</span><span class="o">:</span> <span class="mi">1</span><span class="p">,</span> <span class="nx">message</span><span class="o">:</span> <span class="s2">&quot;Serial signal error detected&quot;</span> <span class="p">},</span>
+  <span class="p">{</span> <span class="nx">code</span><span class="o">:</span> <span class="mi">2</span><span class="p">,</span> <span class="nx">message</span><span class="o">:</span> <span class="s2">&quot;Serial overrun error detected&quot;</span> <span class="p">},</span>
+  <span class="p">{</span> <span class="nx">code</span><span class="o">:</span> <span class="mi">4</span><span class="p">,</span> <span class="nx">message</span><span class="o">:</span> <span class="s2">&quot;Serial RX buffer full&quot;</span> <span class="p">},</span>
+  <span class="p">{</span> <span class="nx">code</span><span class="o">:</span> <span class="mi">8</span><span class="p">,</span> <span class="nx">message</span><span class="o">:</span> <span class="s2">&quot;Serial CRC error detected&quot;</span> <span class="p">},</span>
+  <span class="p">{</span> <span class="nx">code</span><span class="o">:</span> <span class="mi">16</span><span class="p">,</span> <span class="nx">message</span><span class="o">:</span> <span class="s2">&quot;Serial protocol error detected&quot;</span> <span class="p">},</span>
+  <span class="p">{</span> <span class="nx">code</span><span class="o">:</span> <span class="mi">32</span><span class="p">,</span> <span class="nx">message</span><span class="o">:</span> <span class="s2">&quot;Serial timeout error detected&quot;</span> <span class="p">},</span>
+  <span class="p">{</span> <span class="nx">code</span><span class="o">:</span> <span class="mi">64</span><span class="p">,</span> <span class="nx">message</span><span class="o">:</span> <span class="s2">&quot;Script stack error detected&quot;</span> <span class="p">},</span>
+  <span class="p">{</span> <span class="nx">code</span><span class="o">:</span> <span class="mi">128</span><span class="p">,</span> <span class="nx">message</span><span class="o">:</span> <span class="s2">&quot;Script call stack error detected&quot;</span> <span class="p">},</span>
+  <span class="p">{</span> <span class="nx">code</span><span class="o">:</span> <span class="mi">256</span><span class="p">,</span> <span class="nx">message</span><span class="o">:</span> <span class="s2">&quot;Script program counter error detected&quot;</span> <span class="p">}</span>
+<span class="p">];</span>
+
+<span class="nx">SerialPortWrapper</span><span class="p">.</span><span class="nx">prototype</span><span class="p">.</span><span class="nx">_readError</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">onComplete</span><span class="p">)</span> <span class="p">{</span>
+  <span class="k">this</span><span class="p">.</span><span class="nx">_detectingError</span> <span class="o">=</span> <span class="kc">true</span><span class="p">;</span>
+
+  <span class="k">this</span><span class="p">.</span><span class="nx">writeAndRead</span><span class="p">([</span><span class="mh">0xA1</span><span class="p">],</span> <span class="kd">function</span><span class="p">(</span><span class="nx">data</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">this</span><span class="p">.</span><span class="nx">_detectingError</span> <span class="o">=</span> <span class="kc">false</span><span class="p">;</span>
+
+    <span class="kd">var</span> <span class="nx">code</span> <span class="o">=</span> <span class="nx">ByteUtils</span><span class="p">.</span><span class="nx">fromLowAndHigh8Bits</span><span class="p">(</span><span class="nx">data</span><span class="p">);</span>
+
+    <span class="k">if</span><span class="p">(</span><span class="nx">code</span><span class="p">)</span> <span class="p">{</span>
+      <span class="k">for</span><span class="p">(</span><span class="kd">var</span> <span class="nx">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="nx">i</span> <span class="o">&lt;</span> <span class="nx">SERIAL_ERRORS</span><span class="p">.</span><span class="nx">length</span><span class="p">;</span> <span class="nx">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">if</span><span class="p">(</span><span class="nx">code</span> <span class="o">&amp;</span> <span class="nx">SERIAL_ERRORS</span><span class="p">[</span><span class="nx">i</span><span class="p">].</span><span class="nx">code</span><span class="p">)</span> <span class="p">{</span>
+          <span class="nx">LOG</span><span class="p">.</span><span class="nx">warn</span><span class="p">(</span><span class="nx">SERIAL_ERRORS</span><span class="p">[</span><span class="nx">i</span><span class="p">].</span><span class="nx">message</span><span class="p">);</span>
+
+          <span class="k">this</span><span class="p">.</span><span class="nx">emit</span><span class="p">(</span><span class="s2">&quot;error&quot;</span><span class="p">,</span> <span class="nx">code</span><span class="p">,</span> <span class="nx">SERIAL_ERRORS</span><span class="p">[</span><span class="nx">i</span><span class="p">].</span><span class="nx">message</span><span class="p">);</span>
+        <span class="p">}</span>
+      <span class="p">}</span>
+    <span class="p">}</span>
+
+    <span class="k">if</span><span class="p">(</span><span class="nx">onComplete</span><span class="p">)</span> <span class="p">{</span>
+      <span class="nx">onComplete</span><span class="p">();</span>
+    <span class="p">}</span>
+  <span class="p">}.</span><span class="nx">bind</span><span class="p">(</span><span class="k">this</span><span class="p">));</span>
+<span class="p">};</span>
+
+<span class="nx">module</span><span class="p">.</span><span class="nx">exports</span> <span class="o">=</span> <span class="nx">SerialPortWrapper</span><span class="p">;</span></div></div></div></div></body></html>

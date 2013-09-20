@@ -1,0 +1,202 @@
+<!DOCTYPE html><html lang="en"><head><title>pololumaestro</title></head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0"><meta name="groc-relative-root" content=""><meta name="groc-document-path" content="pololumaestro"><meta name="groc-project-path" content="lib/pololumaestro.js"><meta name="groc-github-url" content="https://github.com/omcaree/node-pololumaestro"><link rel="stylesheet" type="text/css" media="all" href="assets/style.css"><script type="text/javascript" src="assets/behavior.js"></script><body><div id="meta"><div class="file-path"><a href="https://github.com/omcaree/node-pololumaestro/blob/master/lib/pololumaestro.js">lib/pololumaestro.js</a></div></div><div id="document"><div class="segment"><div class="comments "><div class="wrapper"><h1 id="pololumaestro">PololuMaestro</h1></div></div></div><div class="segment"><div class="code folded"><div class="marker wrapper"><span class="c1">// imports</span></div><div class="wrapper"><span class="kd">var</span> <span class="nx">LOG</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s2">&quot;winston&quot;</span><span class="p">),</span>
+  <span class="nx">EventEmitter</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s2">&quot;events&quot;</span><span class="p">).</span><span class="nx">EventEmitter</span><span class="p">,</span>
+  <span class="nx">ByteUtils</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s2">&quot;./byteutils&quot;</span><span class="p">),</span>
+  <span class="nx">SerialPortWrapper</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s2">&quot;./serialportwrapper&quot;</span><span class="p">),</span>
+  <span class="nx">DualModeSerialPortWrapper</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s2">&quot;./serialportwrapper-dualport&quot;</span><span class="p">),</span>
+  <span class="nx">ChainedModeSerialPortWrapper</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s2">&quot;./serialportwrapper-chained&quot;</span><span class="p">),</span>
+  <span class="nx">SerialModes</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s2">&quot;./serialmodes&quot;</span><span class="p">);</span></div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Supports two constructors.  The one you use depends on what mode you have
+your Maestro set to and if you expect to receive output from scripts
+running on the Maestro.</p>
+
+<p>If you wish to receive output (e.g. you are going to pass an onData callback
+to <code>restartScriptAtSubroutine</code> or <code>restartScriptAtSubroutineWithParameter</code>),
+you must:</p>
+
+<ul>
+<li>use USB Dual Port mode and</li>
+<li>connect the RX and TX pins on the Maestro.</li>
+</ul>
+
+<p>This is because the <code>serial_write_byte</code> command was envisioned to be
+used to control downstream serial devices and not to communicate with the
+host computer.</p>
+
+<p>If you do not wish to receive output, you can use either mode.</p>
+
+<ol>
+<li><p>USB Dual Port mode:
+<code>new Maestro("COM1", "COM2");</code></p></li>
+<li><p>USB Chained mode:
+<code>new Maestro("COM1", 115200);</code></p></li>
+</ol>
+
+<p>UART mode is not supported.</p></div></div><div class="code"><div class="wrapper"><span class="kd">var</span> <span class="nx">PololuMaestro</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">comPort</span><span class="p">,</span> <span class="nx">baudRate</span><span class="p">)</span> <span class="p">{</span>
+  <span class="k">if</span><span class="p">(</span><span class="o">!</span><span class="nx">comPort</span> <span class="o">&amp;&amp;</span> <span class="o">!</span><span class="nx">baudRate</span><span class="p">)</span> <span class="p">{</span>
+    <span class="nx">LOG</span><span class="p">.</span><span class="nx">error</span><span class="p">(</span><span class="s2">&quot;pololu-maestro&quot;</span><span class="p">,</span> <span class="s2">&quot;Please pass either two COM port addresses (for USB Dual Port mode) or one COM port and one baud rate (for USB Chained mode) into the constructor.&quot;</span><span class="p">);</span>
+
+    <span class="k">return</span><span class="p">;</span>
+  <span class="p">}</span>
+
+  <span class="k">if</span><span class="p">(</span><span class="nx">comPort</span> <span class="k">instanceof</span> <span class="nx">SerialPortWrapper</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">this</span><span class="p">.</span><span class="nx">_serialPort</span> <span class="o">=</span> <span class="nx">comPort</span><span class="p">;</span>
+  <span class="p">}</span> <span class="k">else</span> <span class="k">if</span><span class="p">(</span><span class="k">typeof</span><span class="p">(</span><span class="nx">comPort</span><span class="p">)</span> <span class="o">===</span> <span class="s2">&quot;string&quot;</span> <span class="o">&amp;&amp;</span> <span class="k">typeof</span><span class="p">(</span><span class="nx">baudRate</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;string&quot;</span><span class="p">)</span> <span class="p">{</span>
+    <span class="nx">LOG</span><span class="p">.</span><span class="nx">info</span><span class="p">(</span><span class="s2">&quot;pololu-maestro&quot;</span><span class="p">,</span> <span class="s2">&quot;Using USB Dual Port mode.&quot;</span><span class="p">);</span>
+
+    <span class="k">this</span><span class="p">.</span><span class="nx">_mode</span> <span class="o">=</span> <span class="nx">SerialModes</span><span class="p">.</span><span class="nx">USB_DUAL_PORT</span><span class="p">;</span>
+    <span class="k">this</span><span class="p">.</span><span class="nx">_serialPort</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">DualModeSerialPortWrapper</span><span class="p">(</span><span class="nx">comPort</span><span class="p">,</span> <span class="nx">baudRate</span><span class="p">);</span>
+  <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+    <span class="k">if</span><span class="p">(</span><span class="o">!</span><span class="nx">baudRate</span><span class="p">)</span> <span class="p">{</span>
+      <span class="nx">LOG</span><span class="p">.</span><span class="nx">info</span><span class="p">(</span><span class="s2">&quot;pololu-maestro&quot;</span><span class="p">,</span> <span class="s2">&quot;Defaulting to baud rate of 115200&quot;</span><span class="p">);</span>
+      <span class="nx">baudRate</span> <span class="o">=</span> <span class="mi">115200</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="nx">LOG</span><span class="p">.</span><span class="nx">info</span><span class="p">(</span><span class="s2">&quot;pololu-maestro&quot;</span><span class="p">,</span> <span class="s2">&quot;Using USB Chained mode.&quot;</span><span class="p">);</span>
+    <span class="k">this</span><span class="p">.</span><span class="nx">_mode</span> <span class="o">=</span> <span class="nx">SerialModes</span><span class="p">.</span><span class="nx">USB_CHAINED</span><span class="p">;</span>
+    <span class="k">this</span><span class="p">.</span><span class="nx">_serialPort</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">ChainedModeSerialPortWrapper</span><span class="p">(</span><span class="nx">comPort</span><span class="p">,</span> <span class="nx">baudRate</span><span class="p">);</span>
+  <span class="p">}</span>
+
+  <span class="k">this</span><span class="p">.</span><span class="nx">_serialPort</span><span class="p">.</span><span class="nx">on</span><span class="p">(</span><span class="s2">&quot;open&quot;</span><span class="p">,</span> <span class="k">this</span><span class="p">.</span><span class="nx">emit</span><span class="p">.</span><span class="nx">bind</span><span class="p">(</span><span class="k">this</span><span class="p">,</span> <span class="s2">&quot;ready&quot;</span><span class="p">));</span>
+  <span class="k">this</span><span class="p">.</span><span class="nx">_serialPort</span><span class="p">.</span><span class="nx">on</span><span class="p">(</span><span class="s2">&quot;error&quot;</span><span class="p">,</span> <span class="k">this</span><span class="p">.</span><span class="nx">emit</span><span class="p">.</span><span class="nx">bind</span><span class="p">(</span><span class="k">this</span><span class="p">,</span> <span class="s2">&quot;error&quot;</span><span class="p">));</span>
+<span class="p">};</span></div></div></div><div class="segment"><div class="code"><div class="wrapper"><span class="c1">// extends EventEmmiter</span>
+<span class="nx">PololuMaestro</span><span class="p">.</span><span class="nx">prototype</span> <span class="o">=</span> <span class="nb">Object</span><span class="p">.</span><span class="nx">create</span><span class="p">(</span><span class="nx">EventEmitter</span><span class="p">.</span><span class="nx">prototype</span><span class="p">);</span></div></div></div><div class="segment"><div class="comments "><div class="wrapper"><h2 id="servo-commands">Servo commands</h2>
+
+<p>See the <a href="http://www.pololu.com/docs/0J40/5.e">Polulu documentation</a> for more information.</p></div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Sets the servo target in microseconds</p></div></div><div class="code"><div class="wrapper"><span class="nx">PololuMaestro</span><span class="p">.</span><span class="nx">prototype</span><span class="p">.</span><span class="nx">setTarget</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">channel</span><span class="p">,</span> <span class="nx">us</span><span class="p">,</span> <span class="nx">onComplete</span><span class="p">)</span> <span class="p">{</span>
+  <span class="k">if</span><span class="p">(</span><span class="nx">us</span> <span class="o">&lt;</span> <span class="mi">640</span> <span class="o">||</span> <span class="nx">us</span> <span class="o">&gt;</span> <span class="mi">2304</span><span class="p">)</span> <span class="p">{</span>
+    <span class="nx">LOG</span><span class="p">.</span><span class="nx">error</span><span class="p">(</span><span class="s2">&quot;pololu-maestro: target value should be 640-2304 microseconds, was: &quot;</span> <span class="o">+</span> <span class="nx">us</span><span class="p">);</span>
+
+    <span class="k">return</span><span class="p">;</span>
+  <span class="p">}</span>
+
+  <span class="nx">LOG</span><span class="p">.</span><span class="nx">debug</span><span class="p">(</span><span class="s2">&quot;pololu-maestro: Setting channel &quot;</span> <span class="o">+</span> <span class="nx">channel</span> <span class="o">+</span> <span class="s2">&quot; target to &quot;</span> <span class="o">+</span> <span class="nx">us</span> <span class="o">+</span> <span class="s2">&quot; microseconds&quot;</span><span class="p">);</span>
+  <span class="k">this</span><span class="p">.</span><span class="nx">_sendCommand</span><span class="p">(</span><span class="mh">0x84</span><span class="p">,</span> <span class="nx">channel</span><span class="p">,</span> <span class="nx">us</span> <span class="o">*</span> <span class="mi">4</span><span class="p">,</span> <span class="nx">onComplete</span><span class="p">);</span>
+<span class="p">};</span></div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Sets the servo target via the mini-SCC protocol</p></div></div><div class="code"><div class="wrapper"><span class="nx">PololuMaestro</span><span class="p">.</span><span class="nx">prototype</span><span class="p">.</span><span class="nx">set8BitTarget</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">channel</span><span class="p">,</span> <span class="nx">target</span><span class="p">,</span> <span class="nx">onComplete</span><span class="p">)</span> <span class="p">{</span>
+  <span class="k">if</span><span class="p">(</span><span class="nx">target</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="o">||</span> <span class="nx">target</span> <span class="o">&gt;</span> <span class="mi">254</span><span class="p">)</span> <span class="p">{</span>
+    <span class="nx">LOG</span><span class="p">.</span><span class="nx">error</span><span class="p">(</span><span class="s2">&quot;pololu-maestro: 8 bit target value should be 0-254, was: &quot;</span> <span class="o">+</span> <span class="nx">target</span><span class="p">);</span>
+
+    <span class="k">return</span><span class="p">;</span>
+  <span class="p">}</span>
+  
+  <span class="nx">LOG</span><span class="p">.</span><span class="nx">info</span><span class="p">(</span><span class="s2">&quot;pololu-maestro: Setting channel &quot;</span> <span class="o">+</span> <span class="nx">channel</span> <span class="o">+</span> <span class="s2">&quot; 8 bit target to &quot;</span> <span class="o">+</span> <span class="nx">target</span> <span class="o">+</span> <span class="s2">&quot; microseconds&quot;</span><span class="p">);</span>
+  <span class="k">this</span><span class="p">.</span><span class="nx">_send8BitCommand</span><span class="p">(</span><span class="mh">0xFF</span><span class="p">,</span> <span class="nx">channel</span><span class="p">,</span> <span class="nx">target</span><span class="p">,</span> <span class="nx">onComplete</span><span class="p">);</span>
+<span class="p">};</span></div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Sets servo speed in units 1 = 0.25 μs / (10 ms).</p>
+
+<p>E.g. passing 140 to cause the servo to take 100ms to setTarget from 1000 μs to 1350 μs</p></div></div><div class="code"><div class="wrapper"><span class="nx">PololuMaestro</span><span class="p">.</span><span class="nx">prototype</span><span class="p">.</span><span class="nx">setSpeed</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">channel</span><span class="p">,</span> <span class="nx">us</span><span class="p">,</span> <span class="nx">onComplete</span><span class="p">)</span> <span class="p">{</span>
+  <span class="k">if</span><span class="p">(</span><span class="nx">us</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="o">||</span> <span class="nx">us</span> <span class="o">&gt;</span> <span class="mi">255</span><span class="p">)</span> <span class="p">{</span>
+    <span class="nx">LOG</span><span class="p">.</span><span class="nx">error</span><span class="p">(</span><span class="s2">&quot;pololu-maestro: speed value should be 0-255, was: &quot;</span> <span class="o">+</span> <span class="nx">us</span><span class="p">);</span>
+
+    <span class="k">return</span><span class="p">;</span>
+  <span class="p">}</span>
+  
+  <span class="nx">LOG</span><span class="p">.</span><span class="nx">info</span><span class="p">(</span><span class="s2">&quot;pololu-maestro: Setting channel &quot;</span> <span class="o">+</span> <span class="nx">channel</span> <span class="o">+</span> <span class="s2">&quot; speed to &quot;</span> <span class="o">+</span> <span class="nx">us</span> <span class="o">+</span> <span class="s2">&quot; microseconds&quot;</span><span class="p">);</span>
+  <span class="k">this</span><span class="p">.</span><span class="nx">_sendCommand</span><span class="p">(</span><span class="mh">0x87</span><span class="p">,</span> <span class="nx">channel</span><span class="p">,</span> <span class="nx">us</span><span class="p">,</span> <span class="nx">onComplete</span><span class="p">);</span>
+<span class="p">};</span></div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Sets servo acceleration in units 1 = 0.25 μs / (10 ms).</p>
+
+<p>E.g. passing 140 to cause the servo to take 100ms to setTarget from 1000 μs to 1350 μs</p></div></div><div class="code"><div class="wrapper"><span class="nx">PololuMaestro</span><span class="p">.</span><span class="nx">prototype</span><span class="p">.</span><span class="nx">setAcceleration</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">channel</span><span class="p">,</span> <span class="nx">us</span><span class="p">,</span> <span class="nx">onComplete</span><span class="p">)</span> <span class="p">{</span>
+  <span class="k">if</span><span class="p">(</span><span class="nx">us</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="o">||</span> <span class="nx">us</span> <span class="o">&gt;</span> <span class="mi">255</span><span class="p">)</span> <span class="p">{</span>
+    <span class="nx">LOG</span><span class="p">.</span><span class="nx">error</span><span class="p">(</span><span class="s2">&quot;pololu-maestro: acceleration value should be 0-255, was: &quot;</span> <span class="o">+</span> <span class="nx">us</span><span class="p">);</span>
+
+    <span class="k">return</span><span class="p">;</span>
+  <span class="p">}</span>
+
+  <span class="nx">LOG</span><span class="p">.</span><span class="nx">info</span><span class="p">(</span><span class="s2">&quot;pololu-maestro: Setting channel &quot;</span> <span class="o">+</span> <span class="nx">channel</span> <span class="o">+</span> <span class="s2">&quot; acceleration to &quot;</span> <span class="o">+</span> <span class="nx">us</span> <span class="o">+</span> <span class="s2">&quot; microseconds&quot;</span><span class="p">);</span>
+  <span class="k">this</span><span class="p">.</span><span class="nx">_sendCommand</span><span class="p">(</span><span class="mh">0x89</span><span class="p">,</span> <span class="nx">channel</span><span class="p">,</span> <span class="nx">us</span><span class="p">,</span> <span class="nx">onComplete</span><span class="p">);</span>
+<span class="p">};</span></div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Returns the last position sent the specified servo channel</p></div></div><div class="code"><div class="wrapper"><span class="nx">PololuMaestro</span><span class="p">.</span><span class="nx">prototype</span><span class="p">.</span><span class="nx">getPosition</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">channel</span><span class="p">,</span> <span class="nx">onPosition</span><span class="p">)</span> <span class="p">{</span>
+  <span class="k">this</span><span class="p">.</span><span class="nx">_serialPort</span><span class="p">.</span><span class="nx">writeAndRead</span><span class="p">([</span>
+      <span class="mh">0x90</span><span class="p">,</span>
+      <span class="nx">channel</span>
+    <span class="p">],</span> <span class="kd">function</span><span class="p">(</span><span class="nx">data</span><span class="p">)</span> <span class="p">{</span>
+      <span class="nx">LOG</span><span class="p">.</span><span class="nx">info</span><span class="p">(</span><span class="s2">&quot;Position data was &quot;</span> <span class="o">+</span> <span class="nx">data</span><span class="p">);</span>
+      <span class="nx">onPosition</span><span class="p">(</span><span class="nx">ByteUtils</span><span class="p">.</span><span class="nx">fromLowAndHigh8Bits</span><span class="p">(</span><span class="nx">data</span><span class="p">));</span>
+    <span class="p">}.</span><span class="nx">bind</span><span class="p">(</span><span class="k">this</span><span class="p">)</span>
+  <span class="p">);</span>
+<span class="p">};</span></div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Passes true to the passed callback if any servos are moving, false otherwise</p></div></div><div class="code"><div class="wrapper"><span class="nx">PololuMaestro</span><span class="p">.</span><span class="nx">prototype</span><span class="p">.</span><span class="nx">getMovingState</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">channel</span><span class="p">,</span> <span class="nx">onData</span><span class="p">)</span> <span class="p">{</span>
+  <span class="k">this</span><span class="p">.</span><span class="nx">_serialPort</span><span class="p">.</span><span class="nx">writeAndRead</span><span class="p">([</span>
+      <span class="mh">0x93</span><span class="p">,</span>
+      <span class="nx">channel</span>
+    <span class="p">],</span> <span class="kd">function</span><span class="p">(</span><span class="nx">data</span><span class="p">)</span> <span class="p">{</span>
+      <span class="nx">onData</span><span class="p">(</span><span class="nx">data</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">?</span> <span class="kc">true</span> <span class="o">:</span> <span class="kc">false</span><span class="p">);</span>
+    <span class="p">}.</span><span class="nx">bind</span><span class="p">(</span><span class="k">this</span><span class="p">)</span>
+  <span class="p">);</span>
+<span class="p">};</span></div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Sends all servos and outputs to their home position</p></div></div><div class="code"><div class="wrapper"><span class="nx">PololuMaestro</span><span class="p">.</span><span class="nx">prototype</span><span class="p">.</span><span class="nx">reset</span> <span class="o">=</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+  <span class="k">this</span><span class="p">.</span><span class="nx">_serialPort</span><span class="p">.</span><span class="nx">write</span><span class="p">([</span> <span class="mh">0xA2</span> <span class="p">]);</span>
+<span class="p">};</span></div></div></div><div class="segment"><div class="comments "><div class="wrapper"><h2 id="input-commands">Input commands</h2></div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Reads the state of an analog input</p></div></div><div class="code"><div class="wrapper"><span class="nx">PololuMaestro</span><span class="p">.</span><span class="nx">prototype</span><span class="p">.</span><span class="nx">analogRead</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">channel</span><span class="p">,</span> <span class="nx">onValue</span><span class="p">)</span> <span class="p">{</span>
+  <span class="k">if</span><span class="p">(</span><span class="nx">channel</span> <span class="o">&gt;</span> <span class="mi">11</span><span class="p">)</span> <span class="p">{</span>
+    <span class="nx">LOG</span><span class="p">.</span><span class="nx">error</span><span class="p">(</span><span class="s2">&quot;Only pins 0-11 are analog inputs.&quot;</span><span class="p">);</span>
+    
+    <span class="k">return</span><span class="p">;</span>
+  <span class="p">}</span>
+
+  <span class="k">this</span><span class="p">.</span><span class="nx">_serialPort</span><span class="p">.</span><span class="nx">writeAndRead</span><span class="p">(</span>
+    <span class="p">[</span><span class="mh">0x90</span><span class="p">,</span> <span class="nx">channel</span><span class="p">],</span> <span class="kd">function</span><span class="p">(</span><span class="nx">data</span><span class="p">)</span> <span class="p">{</span>
+      <span class="nx">onValue</span><span class="p">(</span><span class="nx">ByteUtils</span><span class="p">.</span><span class="nx">fromLowAndHigh8Bits</span><span class="p">(</span><span class="nx">data</span><span class="p">));</span>
+    <span class="p">}</span>
+  <span class="p">);</span>
+<span class="p">};</span></div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Reads the state of a digital input</p></div></div><div class="code"><div class="wrapper"><span class="nx">PololuMaestro</span><span class="p">.</span><span class="nx">prototype</span><span class="p">.</span><span class="nx">digitalRead</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">channel</span><span class="p">,</span> <span class="nx">onValue</span><span class="p">)</span> <span class="p">{</span>
+  <span class="k">if</span><span class="p">(</span><span class="nx">channel</span> <span class="o">&lt;</span> <span class="mi">12</span><span class="p">)</span> <span class="p">{</span>
+    <span class="nx">LOG</span><span class="p">.</span><span class="nx">error</span><span class="p">(</span><span class="s2">&quot;Only pins 12+ are digital inputs.&quot;</span><span class="p">);</span>
+    
+    <span class="k">return</span><span class="p">;</span>
+  <span class="p">}</span>
+
+  <span class="k">this</span><span class="p">.</span><span class="nx">_serialPort</span><span class="p">.</span><span class="nx">writeAndRead</span><span class="p">(</span>
+    <span class="p">[</span><span class="mh">0x90</span><span class="p">,</span> <span class="nx">channel</span><span class="p">],</span> <span class="kd">function</span><span class="p">(</span><span class="nx">data</span><span class="p">)</span> <span class="p">{</span>
+      <span class="nx">onValue</span><span class="p">(</span><span class="nx">ByteUtils</span><span class="p">.</span><span class="nx">fromLowAndHigh8Bits</span><span class="p">(</span><span class="nx">data</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mi">6000</span> <span class="o">?</span> <span class="kc">true</span> <span class="o">:</span> <span class="kc">false</span><span class="p">);</span>
+    <span class="p">}</span>
+  <span class="p">);</span>
+<span class="p">};</span></div></div></div><div class="segment"><div class="comments "><div class="wrapper"><h2 id="output-commands">Output commands</h2>
+
+<p>The Maestro has no analog outputs, only digital.</p></div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Sets the state of a digital output</p></div></div><div class="code"><div class="wrapper"><span class="nx">PololuMaestro</span><span class="p">.</span><span class="nx">prototype</span><span class="p">.</span><span class="nx">digitalWrite</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">channel</span><span class="p">,</span> <span class="nx">value</span><span class="p">,</span> <span class="nx">onComplete</span><span class="p">)</span> <span class="p">{</span>
+  <span class="k">this</span><span class="p">.</span><span class="nx">setTarget</span><span class="p">(</span><span class="nx">channel</span><span class="p">,</span> <span class="nx">value</span> <span class="o">?</span> <span class="mi">2304</span> <span class="o">:</span> <span class="mi">640</span><span class="p">,</span> <span class="nx">onComplete</span><span class="p">);</span>
+<span class="p">};</span></div></div></div><div class="segment"><div class="comments "><div class="wrapper"><h2 id="pwm-commands">PWM commands</h2>
+
+<p>The Maestro 12, 18 &amp; 24 have one PWM channel on pins 8, 12 &amp; 12 respectively.</p></div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Sets PWM channel value</p></div></div><div class="code"><div class="wrapper"><span class="nx">PololuMaestro</span><span class="p">.</span><span class="nx">prototype</span><span class="p">.</span><span class="nx">setPWM</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">onTime</span><span class="p">,</span> <span class="nx">period</span><span class="p">,</span> <span class="nx">onComplete</span><span class="p">)</span> <span class="p">{</span>
+  <span class="k">this</span><span class="p">.</span><span class="nx">_serialPort</span><span class="p">.</span><span class="nx">write</span><span class="p">(</span>
+    <span class="p">[</span> <span class="mh">0x8A</span> <span class="p">].</span><span class="nx">concat</span><span class="p">(</span><span class="nx">ByteUtils</span><span class="p">.</span><span class="nx">toLowAndHighBits</span><span class="p">(</span><span class="nx">onTime</span><span class="p">)).</span><span class="nx">concat</span><span class="p">(</span><span class="nx">ByteUtils</span><span class="p">.</span><span class="nx">toLowAndHighBits</span><span class="p">(</span><span class="nx">period</span><span class="p">)),</span>
+    <span class="nx">onComplete</span>
+  <span class="p">);</span>
+<span class="p">};</span></div></div></div><div class="segment"><div class="comments "><div class="wrapper"><h2 id="script-commands">Script commands</h2>
+
+<p>See the <a href="http://www.pololu.com/docs/0J40/5.f">Pololu documentation</a> for more information.</p></div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Stops a currently running script</p></div></div><div class="code"><div class="wrapper"><span class="nx">PololuMaestro</span><span class="p">.</span><span class="nx">prototype</span><span class="p">.</span><span class="nx">stopScript</span> <span class="o">=</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+  <span class="k">this</span><span class="p">.</span><span class="nx">_serialPort</span><span class="p">.</span><span class="nx">write</span><span class="p">([</span> <span class="mh">0xA4</span> <span class="p">]);</span>
+<span class="p">};</span></div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Tells the Maestro to run the passed subroutine number.</p>
+
+<p>N.b. if you pass the onData callback, you must be running the Maestro in USB Dual Port mode.</p></div></div><div class="code"><div class="wrapper"><span class="nx">PololuMaestro</span><span class="p">.</span><span class="nx">prototype</span><span class="p">.</span><span class="nx">restartScriptAtSubroutine</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">subroutineNumber</span><span class="p">,</span> <span class="nx">onData</span><span class="p">)</span> <span class="p">{</span>
+  <span class="k">if</span><span class="p">(</span><span class="nx">onData</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">if</span><span class="p">(</span><span class="k">this</span><span class="p">.</span><span class="nx">_mode</span> <span class="o">!==</span> <span class="nx">SerialModes</span><span class="p">.</span><span class="nx">USB_DUAL_PORT</span><span class="p">)</span> <span class="p">{</span>
+      <span class="k">this</span><span class="p">.</span><span class="nx">emit</span><span class="p">(</span><span class="s2">&quot;error&quot;</span><span class="p">,</span> <span class="s2">&quot;Must be in USB Dual Port mode to read output from subroutines&quot;</span><span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="k">this</span><span class="p">.</span><span class="nx">_serialPort</span><span class="p">.</span><span class="nx">writeAndRead</span><span class="p">([</span> <span class="mh">0xA7</span><span class="p">,</span> <span class="nx">subroutineNumber</span> <span class="p">],</span> <span class="nx">onData</span><span class="p">);</span>
+  <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+    <span class="k">this</span><span class="p">.</span><span class="nx">_serialPort</span><span class="p">.</span><span class="nx">write</span><span class="p">([</span> <span class="mh">0xA7</span><span class="p">,</span> <span class="nx">subroutineNumber</span><span class="p">]);</span>
+  <span class="p">}</span>
+<span class="p">};</span></div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Runs the subroutine with the passed number and sends a parameter</p>
+
+<p>N.b. if you pass the onData callback, you must be running the Maestro in USB Dual Port mode.</p></div></div><div class="code"><div class="wrapper"><span class="nx">PololuMaestro</span><span class="p">.</span><span class="nx">prototype</span><span class="p">.</span><span class="nx">restartScriptAtSubroutineWithParameter</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">subroutineNumber</span><span class="p">,</span> <span class="nx">parameter</span><span class="p">,</span> <span class="nx">onData</span><span class="p">)</span> <span class="p">{</span>
+  <span class="k">if</span><span class="p">(</span><span class="nx">parameter</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="o">||</span> <span class="nx">parameter</span> <span class="o">&gt;</span> <span class="mi">16383</span><span class="p">)</span> <span class="p">{</span>
+    <span class="nx">LOG</span><span class="p">.</span><span class="nx">error</span><span class="p">(</span><span class="s2">&quot;Subroutine parameter must be in the range 0-16383&quot;</span><span class="p">);</span>
+
+    <span class="k">return</span><span class="p">;</span>
+  <span class="p">}</span>
+  
+  <span class="k">if</span><span class="p">(</span><span class="nx">onData</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">if</span><span class="p">(</span><span class="k">this</span><span class="p">.</span><span class="nx">_mode</span> <span class="o">!==</span> <span class="nx">SerialModes</span><span class="p">.</span><span class="nx">USB_DUAL_PORT</span><span class="p">)</span> <span class="p">{</span>
+      <span class="k">this</span><span class="p">.</span><span class="nx">emit</span><span class="p">(</span><span class="s2">&quot;error&quot;</span><span class="p">,</span> <span class="s2">&quot;Must be in USB Dual Port mode to read output from subroutines&quot;</span><span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="k">this</span><span class="p">.</span><span class="nx">_serialPort</span><span class="p">.</span><span class="nx">writeAndRead</span><span class="p">([</span> <span class="mh">0xA8</span><span class="p">,</span> <span class="nx">subroutineNumber</span> <span class="p">].</span><span class="nx">concat</span><span class="p">(</span><span class="nx">ByteUtils</span><span class="p">.</span><span class="nx">toLowAndHighBits</span><span class="p">(</span><span class="nx">parameter</span><span class="p">)),</span> <span class="nx">onData</span><span class="p">);</span>
+  <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+    <span class="k">this</span><span class="p">.</span><span class="nx">_serialPort</span><span class="p">.</span><span class="nx">write</span><span class="p">([</span> <span class="mh">0xA8</span><span class="p">,</span> <span class="nx">subroutineNumber</span><span class="p">].</span><span class="nx">concat</span><span class="p">(</span><span class="nx">ByteUtils</span><span class="p">.</span><span class="nx">toLowAndHighBits</span><span class="p">(</span><span class="nx">parameter</span><span class="p">)));</span>
+  <span class="p">}</span>
+<span class="p">};</span></div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Passes true to the passed callback if the script is still running, otherwise false</p></div></div><div class="code"><div class="wrapper"><span class="nx">PololuMaestro</span><span class="p">.</span><span class="nx">prototype</span><span class="p">.</span><span class="nx">getScriptStatus</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">onStatus</span><span class="p">)</span> <span class="p">{</span>
+  <span class="k">this</span><span class="p">.</span><span class="nx">_serialPort</span><span class="p">.</span><span class="nx">writeAndRead</span><span class="p">([</span> <span class="mh">0xAE</span> <span class="p">],</span> <span class="kd">function</span><span class="p">(</span><span class="nx">data</span><span class="p">)</span> <span class="p">{</span>
+    <span class="nx">onStatus</span><span class="p">(</span><span class="nx">data</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">?</span> <span class="kc">true</span> <span class="o">:</span> <span class="kc">false</span><span class="p">);</span>
+  <span class="p">});</span>
+<span class="p">};</span></div></div></div><div class="segment"><div class="code folded"><div class="marker wrapper"><span class="c1">// Internal methods</span></div><div class="wrapper"><span class="nx">PololuMaestro</span><span class="p">.</span><span class="nx">prototype</span><span class="p">.</span><span class="nx">_sendCommand</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">command</span><span class="p">,</span> <span class="nx">channel</span><span class="p">,</span> <span class="nx">value</span><span class="p">,</span> <span class="nx">onComplete</span><span class="p">)</span> <span class="p">{</span>
+  <span class="k">this</span><span class="p">.</span><span class="nx">_serialPort</span><span class="p">.</span><span class="nx">write</span><span class="p">([</span> <span class="nx">command</span><span class="p">,</span> <span class="nx">channel</span> <span class="p">].</span><span class="nx">concat</span><span class="p">(</span><span class="nx">ByteUtils</span><span class="p">.</span><span class="nx">toLowAndHighBits</span><span class="p">(</span><span class="nx">value</span><span class="p">)),</span> <span class="nx">onComplete</span><span class="p">);</span>
+<span class="p">};</span>
+
+<span class="nx">PololuMaestro</span><span class="p">.</span><span class="nx">prototype</span><span class="p">.</span><span class="nx">_send8BitCommand</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">command</span><span class="p">,</span> <span class="nx">channel</span><span class="p">,</span> <span class="nx">value</span><span class="p">,</span> <span class="nx">onComplete</span><span class="p">)</span> <span class="p">{</span>
+  <span class="k">this</span><span class="p">.</span><span class="nx">_serialPort</span><span class="p">.</span><span class="nx">write</span><span class="p">([</span> <span class="nx">command</span><span class="p">,</span> <span class="nx">channel</span><span class="p">,</span> <span class="nx">value</span> <span class="p">],</span> <span class="nx">onComplete</span><span class="p">);</span>
+<span class="p">};</span></div></div></div><div class="segment"><div class="code"><div class="wrapper"><span class="c1">// Export for the public</span>
+<span class="nx">module</span><span class="p">.</span><span class="nx">exports</span> <span class="o">=</span> <span class="nx">PololuMaestro</span><span class="p">;</span></div></div></div></div></body></html>
