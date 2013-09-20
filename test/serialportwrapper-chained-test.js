@@ -1,32 +1,31 @@
-var SerialPortWrapper = require("../lib/serialportwrapper"),
+var ChainedModeSerialPortWrapper = require("../lib/serialportwrapper-chained"),
 	SerialPort = require("serialport").SerialPort,
 	LOG = require("winston"),
 	JsMockito = require("jsmockito").JsMockito,
 	JsHamcrest = require('jshamcrest').JsHamcrest;
-
 
 JsHamcrest.Integration.Nodeunit();
 JsMockito.Integration.Nodeunit();
 
 function arr_equals(arr1, arr2) {
 	var result = true;
-	
+
 	arr1.forEach(function(value, index) {
 		if(arr2[index] != value) {
 			result = false;
 		}
 	});
-	
+
 	return result;
 }
 
 // holds serial port behaviour
 var serialTraffic = [ /*{
-	input: [0xA1],
-	output: [0x00, 0x00]
-} */];
+ input: [0xA1],
+ output: [0x00, 0x00]
+ } */];
 
-// because we're stubbing SerialPort#write, it looks like we have to 
+// because we're stubbing SerialPort#write, it looks like we have to
 // keep track of invocations ourselves.  Ugh.
 var serialPortWriteInvocations = [];
 
@@ -39,15 +38,15 @@ module.exports = {
 			input: [0xA1],
 			output: [0x00, 0x00]
 		}];
-		
+
 		serialPortWriteInvocations = [];
-		
+
 		// prints the passed bytes out for debugging
 		when(mockSerialPort).write().then(function(bytes, callback) {
 			var invocation = {
 				arguments: [bytes, callback]
 			};
-			
+
 			serialPortWriteInvocations.push(invocation);
 
 			var output = "";
@@ -80,15 +79,15 @@ module.exports = {
 		});
 
 		this._mockSerialPort = mockSerialPort;
-		this._serialPortWrapper = new SerialPortWrapper(mockSerialPort);
+		this._serialPortWrapper = new ChainedModeSerialPortWrapper(mockSerialPort);
 
 		done();
 	},
-	
+
 	"Should invoke callback": function (test) {
 		var invoked = false;
 
-		var serialPortWrapper = new SerialPortWrapper(this._mockSerialPort);
+		var serialPortWrapper = new ChainedModeSerialPortWrapper(this._mockSerialPort);
 		serialPortWrapper.on("open", function() {
 			invoked = true;
 		});
@@ -96,7 +95,7 @@ module.exports = {
 		this._mockSerialPort.emit("open");
 
 		test.ok(invoked, "Did not invoke callback");
-		test.done();   	
+		test.done();
 	},
 
 	"Should write to serial port": function (test) {
@@ -107,26 +106,26 @@ module.exports = {
 		test.equal(2, serialPortWriteInvocations.length, "Did not write to port and then test for error");
 		test.deepEqual([0x01], serialPortWriteInvocations[0].arguments[0], "Did not write correct bytes");
 		test.deepEqual([0xA1], serialPortWriteInvocations[1].arguments[0], "Did not write correct error test bytes");
-		test.done();   	
+		test.done();
 	},
-	
+
 	"Should defer write until connected": function (test) {
 		var invoked = false;
 
 		this._serialPortWrapper.write(0x01, function() {
 			invoked = true;
 		});
-		
+
 		test.ok(!invoked, "Invoked callback too early!");
-		
+
 		this._mockSerialPort.emit("open");
-		
+
 		test.ok(invoked, "Invoked callback too late!");
 
 		test.equal(2, serialPortWriteInvocations.length, "Did not write to port and then test for error");
 		test.deepEqual([0x01], serialPortWriteInvocations[0].arguments[0], "Did not write correct bytes");
 		test.deepEqual([0xA1], serialPortWriteInvocations[1].arguments[0], "Did not write correct error test bytes");
-		test.done();   	
+		test.done();
 	},
 
 	"Should defer write and read until connected": function (test) {
@@ -150,19 +149,19 @@ module.exports = {
 		test.equal(2, serialPortWriteInvocations.length, "Did not write and read to port and then test for error");
 		test.deepEqual([0x01], serialPortWriteInvocations[0].arguments[0], "Did not write correct bytes");
 		test.deepEqual([0xA1], serialPortWriteInvocations[1].arguments[0], "Did not write correct error test bytes");
-		test.done();   	
+		test.done();
 	},
 
 	"Should read from serial port": function (test) {
 		this._mockSerialPort.emit("open");
-		
+
 		var traffic = {
 			input: [0xCC],
 			output: [0x01, 0x02]
 		};
-		
+
 		serialTraffic.push(traffic);
-		
+
 		var recieved;
 
 		this._serialPortWrapper.writeAndRead(0xCC, function(data) {
@@ -175,7 +174,7 @@ module.exports = {
 		test.deepEqual(traffic.output, recieved, "Did not read bytes");
 		test.done();
 	},
-	
+
 	"Should read error": function (test) {
 		this._mockSerialPort.emit("open");
 
@@ -203,45 +202,45 @@ module.exports = {
 	},
 
 	"Should defer second read until first read has completed": function (test) {
-			// need more control over serial port for this test
-			var mockSerialPort = spy(new SerialPort("/dev/null", null, false));
-			when(mockSerialPort).write().then(function(bytes, callback) {
-				if(callback) {
-					callback(null, bytes.length);
-				}
-			});
+		// need more control over serial port for this test
+		var mockSerialPort = spy(new SerialPort("/dev/null", null, false));
+		when(mockSerialPort).write().then(function(bytes, callback) {
+			if(callback) {
+				callback(null, bytes.length);
+			}
+		});
 
-			this._serialPortWrapper = new SerialPortWrapper(mockSerialPort);
+		this._serialPortWrapper = new ChainedModeSerialPortWrapper(mockSerialPort);
 
-			// port should be open
-			mockSerialPort.emit("open");
+		// port should be open
+		mockSerialPort.emit("open");
 
-			var invokedFirstReadOperation = false;
-			var invokedSecondReadOperation = false;
-			var invokedWriteOperation = false;
+		var invokedFirstReadOperation = false;
+		var invokedSecondReadOperation = false;
+		var invokedWriteOperation = false;
 
-			// make first read request
-			this._serialPortWrapper.writeAndRead(0x01, function(data) {
-				invokedFirstReadOperation = true;
-			});
+		// make first read request
+		this._serialPortWrapper.writeAndRead(0x01, function(data) {
+			invokedFirstReadOperation = true;
+		});
 
-			// no data emitted yet
-			test.ok(!invokedFirstReadOperation, "Invoked first read operation callback way too early!");
+		// no data emitted yet
+		test.ok(!invokedFirstReadOperation, "Invoked first read operation callback way too early!");
 
-			// queue up second read request
-			this._serialPortWrapper.writeAndRead(0x02, function(data) {
-				invokedSecondReadOperation = true;
-			});
+		// queue up second read request
+		this._serialPortWrapper.writeAndRead(0x02, function(data) {
+			invokedSecondReadOperation = true;
+		});
 
-			// still no data emitted...
-			test.ok(!invokedFirstReadOperation, "Invoked first read operation callback too early!");
-			test.ok(!invokedSecondReadOperation, "Invoked second read operation callback too early!");
-			
-			// queue up write request
-			this._serialPortWrapper.write(0x03, function(error, bytesWritten) {
-				invokedWriteOperation = true;
-			});
-			
+		// still no data emitted...
+		test.ok(!invokedFirstReadOperation, "Invoked first read operation callback too early!");
+		test.ok(!invokedSecondReadOperation, "Invoked second read operation callback too early!");
+
+		// queue up write request
+		this._serialPortWrapper.write(0x03, function(error, bytesWritten) {
+			invokedWriteOperation = true;
+		});
+
 		test.ok(!invokedFirstReadOperation, "Invoked first read operation callback too early!");
 		test.ok(!invokedSecondReadOperation, "Invoked second read operation callback too early!");
 		test.ok(!invokedWriteOperation, "Invoked write operation callback too early!");
@@ -268,7 +267,6 @@ module.exports = {
 		test.ok(invokedSecondReadOperation, "Did not invoke second read operation callback!");
 		test.ok(invokedWriteOperation, "Did not invoke write operation!");
 
-		test.done();   	
+		test.done();
 	}
 };
-	
