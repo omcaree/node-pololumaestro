@@ -5,7 +5,7 @@
 
 This module allows control of the Pololu Maestro range of servo controllers from Node.js allowing your project to interact with the world!
 
-See the [API documentation](http://omcaree.github.io/node-pololumaestro) for more information.
+See the [API documentation](http://omcaree.github.io/node-pololumaestro/) for more information.
 
 ## Dependencies
 
