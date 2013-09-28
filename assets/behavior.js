@@ -72,6 +72,14 @@ f.event={add:function(a,c,d,e,g){var h,i,j,k,l,m,n,o,p,q,r,s;if(!(a.nodeType===3
                   "type": "heading",
                   "data": {
                     "level": 3,
+                    "title": "v2.1.1",
+                    "slug": "v211"
+                  },
+                  "depth": 3
+                }, {
+                  "type": "heading",
+                  "data": {
+                    "level": 3,
                     "title": "v2.1.0",
                     "slug": "v210"
                   },
@@ -151,6 +159,14 @@ f.event={add:function(a,c,d,e,g){var h,i,j,k,l,m,n,o,p,q,r,s;if(!(a.nodeType===3
           "depth": 2,
           "children": [
             {
+              "type": "heading",
+              "data": {
+                "level": 3,
+                "title": "v2.1.1",
+                "slug": "v211"
+              },
+              "depth": 3
+            }, {
               "type": "heading",
               "data": {
                 "level": 3,
@@ -448,6 +464,36 @@ f.event={add:function(a,c,d,e,g){var h,i,j,k,l,m,n,o,p,q,r,s;if(!(a.nodeType===3
           "depth": 1
         },
         "title": "DualModeSerialPortWrapper"
+      },
+      "depth": 1,
+      "outline": []
+    }, {
+      "type": "file",
+      "data": {
+        "language": {
+          "nameMatchers": [".js"],
+          "pygmentsLexer": "javascript",
+          "singleLineComment": ["//"],
+          "multiLineComment": ["/*", "*", "*/"],
+          "ignorePrefix": "}",
+          "foldPrefix": "^",
+          "name": "JavaScript"
+        },
+        "sourcePath": "/Users/alex/Documents/Workspaces/fullbaud/build-cat/ext/node-pololumaestro/lib/types.js",
+        "projectPath": "lib/types.js",
+        "targetPath": "types",
+        "pageTitle": "types",
+        "firstHeader": {
+          "type": "heading",
+          "data": {
+            "level": 1,
+            "title": "Types",
+            "slug": "types",
+            "isFileHeader": true
+          },
+          "depth": 1
+        },
+        "title": "Types"
       },
       "depth": 1,
       "outline": []

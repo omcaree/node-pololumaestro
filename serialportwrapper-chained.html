@@ -11,7 +11,7 @@ mode instead.</p>
 <pre><code class="javascript">new ChainedModeSerialPortWrapper("/dev/COM1", 115200);
 </code></pre></div></div><div class="code"><div class="wrapper"><span class="kd">var</span> <span class="nx">ChainedModeSerialPortWrapper</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">comPort</span><span class="p">,</span> <span class="nx">baudRate</span><span class="p">)</span> <span class="p">{</span>
   <span class="k">if</span><span class="p">(</span><span class="o">!</span><span class="nx">comPort</span> <span class="o">&amp;&amp;</span> <span class="o">!</span><span class="nx">baudRate</span><span class="p">)</span> <span class="p">{</span>
-    <span class="nx">LOG</span><span class="p">.</span><span class="nx">error</span><span class="p">(</span><span class="s2">&quot;No port or baud rate specified.&quot;</span><span class="p">);</span>
+    <span class="nx">LOG</span><span class="p">.</span><span class="nx">error</span><span class="p">(</span><span class="s2">&quot;ChainedModeSerialPortWrapper&quot;</span><span class="p">,</span> <span class="s2">&quot;No port or baud rate specified.&quot;</span><span class="p">);</span>
 
     <span class="k">return</span><span class="p">;</span>
   <span class="p">}</span></div></div></div><div class="segment"><div class="code"><div class="wrapper">  <span class="c1">// signifies we are waiting for a read</span>
@@ -28,7 +28,7 @@ mode instead.</p>
   <span class="k">this</span><span class="p">.</span><span class="nx">_serialPort</span><span class="p">.</span><span class="nx">once</span><span class="p">(</span><span class="s2">&quot;open&quot;</span><span class="p">,</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
     <span class="k">this</span><span class="p">.</span><span class="nx">_connected</span> <span class="o">=</span> <span class="kc">true</span><span class="p">;</span>
 
-    <span class="nx">LOG</span><span class="p">.</span><span class="nx">info</span><span class="p">(</span><span class="s2">&quot;pololu-maestro: Connected to &quot;</span> <span class="o">+</span> <span class="nx">comPort</span><span class="p">);</span>
+    <span class="nx">LOG</span><span class="p">.</span><span class="nx">info</span><span class="p">(</span><span class="s2">&quot;ChainedModeSerialPortWrapper&quot;</span><span class="p">,</span> <span class="s2">&quot;Connected to &quot;</span> <span class="o">+</span> <span class="nx">comPort</span><span class="p">);</span>
 
     <span class="k">this</span><span class="p">.</span><span class="nx">emit</span><span class="p">(</span><span class="s2">&quot;open&quot;</span><span class="p">);</span>
   <span class="p">}.</span><span class="nx">bind</span><span class="p">(</span><span class="k">this</span><span class="p">));</span>
@@ -37,7 +37,7 @@ mode instead.</p>
 
 <span class="nx">ChainedModeSerialPortWrapper</span><span class="p">.</span><span class="nx">prototype</span><span class="p">.</span><span class="nx">writeAndRead</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">bytes</span><span class="p">,</span> <span class="nx">onData</span><span class="p">)</span> <span class="p">{</span>
   <span class="k">if</span><span class="p">(</span><span class="o">!</span><span class="k">this</span><span class="p">.</span><span class="nx">_connected</span><span class="p">)</span> <span class="p">{</span>
-    <span class="nx">LOG</span><span class="p">.</span><span class="nx">warn</span><span class="p">(</span><span class="s2">&quot;pololu-maestro: Not connected yet, deferring read until com port is available.&quot;</span><span class="p">);</span>
+    <span class="nx">LOG</span><span class="p">.</span><span class="nx">warn</span><span class="p">(</span><span class="s2">&quot;ChainedModeSerialPortWrapper&quot;</span><span class="p">,</span> <span class="s2">&quot;Not connected yet, deferring read until com port is available.&quot;</span><span class="p">);</span>
 
     <span class="k">this</span><span class="p">.</span><span class="nx">once</span><span class="p">(</span><span class="s2">&quot;open&quot;</span><span class="p">,</span> <span class="k">this</span><span class="p">.</span><span class="nx">writeAndRead</span><span class="p">.</span><span class="nx">bind</span><span class="p">(</span><span class="k">this</span><span class="p">,</span> <span class="nx">bytes</span><span class="p">,</span> <span class="nx">onData</span><span class="p">));</span>
 

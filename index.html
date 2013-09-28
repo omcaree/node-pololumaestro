@@ -5,7 +5,7 @@
 
 <p>This module allows control of the Pololu Maestro range of servo controllers from Node.js allowing your project to interact with the world!</p>
 
-<p>See the <a href="http://omcaree.github.io/node-pololumaestro">API documentation</a> for more information.</p>
+<p>See the <a href="http://omcaree.github.io/node-pololumaestro/">API documentation</a> for more information.</p>
 
 <h2 id="dependencies">Dependencies</h2>
 
@@ -107,9 +107,19 @@ maestro.on("ready", function() {
         // status is a boolean
     });
 });
+
+// alternatively, attempt to auto-detect:
+PololuMaestro.find(PololuMaestro.SERIAL_MODES.USB_DUAL_PORT, function(maestro) {
+    // ... do something
+});
 </code></pre>
 
 <h2 id="version-history">Version history</h2>
+
+<h3 id="v211">v2.1.1</h3>
+
+<p>Updates  (contributed by <a href="https://github.com/achingbrain">achingbrain</a>):
+ * Adds a find method to attempt to auto-detect a connected board</p>
 
 <h3 id="v210">v2.1.0</h3>
 
