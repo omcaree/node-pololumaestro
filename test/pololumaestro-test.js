@@ -334,7 +334,7 @@ module.exports = {
 			output: [0x0A, 0x00]
 		});
 
-		this._maestro._mode = SerialModes.USB_DUAL_PORT;
+		this._maestro.mode = SerialModes.USB_DUAL_PORT;
 
 		this._maestro.restartScriptAtSubroutine(1, function(data) {
 			received = data;
@@ -362,7 +362,7 @@ module.exports = {
 			output: [0x0A, 0x00]
 		});
 
-		this._maestro._mode = SerialModes.USB_DUAL_PORT;
+		this._maestro.mode = SerialModes.USB_DUAL_PORT;
 
 		this._maestro.restartScriptAtSubroutineWithParameter(1, 10, function(data) {
 			received = data;

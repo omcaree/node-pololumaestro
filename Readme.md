@@ -110,9 +110,21 @@ maestro.on("ready", function() {
 		// status is a boolean
 	});
 });
+
+// alternatively, attempt to auto-detect:
+PololuMaestro.find(PololuMaestro.SERIAL_MODES.USB_DUAL_PORT, function(maestro) {
+	// ... do something
+});
+
+
 ```
 
 ## Version history
+
+### v2.1.1
+
+Updates  (contributed by [achingbrain](https://github.com/achingbrain)):
+ * Adds a find method to attempt to auto-detect a connected board
 
 ### v2.1.0
 
