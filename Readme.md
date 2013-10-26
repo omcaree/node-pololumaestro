@@ -17,7 +17,7 @@ It also uses [Winston](https://github.com/flatiron/winston) for logging.
 
 Install this module with
 
-```
+```shell
 npm install pololumaestro
 ```
 
@@ -25,7 +25,7 @@ npm install pololumaestro
 
 Run unit tests with:
 
-```
+```shell
 npm test
 ```
 
@@ -115,11 +115,12 @@ maestro.on("ready", function() {
 PololuMaestro.find(PololuMaestro.SERIAL_MODES.USB_DUAL_PORT, function(maestro) {
 	// ... do something
 });
-
-
 ```
 
 ## Version history
+
+### v2.1.2
+ * Small tweak for OS X Mavericks compatibility
 
 ### v2.1.1
 
