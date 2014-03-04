@@ -14,7 +14,8 @@
   },
   "dependencies": {
     "serialport": "^1.2",
-    "winston": "^0.7"
+    "winston": "^0.7",
+    "async": "^0.2"
   },
   "devDependencies": {
     "nodeunit": "^0.8",
