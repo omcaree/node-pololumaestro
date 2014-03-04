@@ -1,9 +1,29 @@
-var PololuMaestro = require("../lib/pololumaestro"),
-	SerialPortWrapper = require("../lib/serialportwrapper"),
+var EventEmitter = require("events").EventEmitter,
+	util = require("util");
+
+var MockSerialPortWrapper = function() {
+	setTimeout(function() {
+		this.emit("open");
+	}.bind(this), 500);
+};
+util.inherits(MockSerialPortWrapper, EventEmitter);
+
+var stubs = {
+	serialport: {
+
+	},
+	"./serialportwrapper-dualport": MockSerialPortWrapper,
+	"./serialportwrapper-chained": MockSerialPortWrapper
+};
+
+var SerialPortWrapper = require("../lib/serialportwrapper"),
 	SerialModes = require("../lib/serialmodes"),
 	LOG = require("winston"),
 	JsMockito = require("jsmockito").JsMockito,
-	JsHamcrest = require('jshamcrest').JsHamcrest;
+	JsHamcrest = require("jshamcrest").JsHamcrest,
+	proxyquire = require("proxyquire");
+
+var PololuMaestro = proxyquire("../lib/pololumaestro", stubs);
 
 JsHamcrest.Integration.Nodeunit();
 JsMockito.Integration.Nodeunit();
@@ -397,5 +417,45 @@ module.exports = {
 		test.equal(1, serialPortWriteInvocations.length, "Did not send report script status byte");
 		test.ok(reportedStatus, "Should have reported script status as running");
 		test.done();
+	},
+
+	"Should find maestro in dual port mode": function (test) {
+		var ports = [{
+			comName: "john",
+			vendorId: 0x1ffb
+		}, {
+			comName: "paul"
+		}];
+
+		stubs.serialport.list = function(callback) {
+			callback(null, ports);
+		}
+
+		PololuMaestro.find(PololuMaestro.SERIAL_MODES.USB_DUAL_PORT, function(error, maestro) {
+			test.ok(!error);
+			test.ok(maestro);
+
+			test.done();
+		});
+	},
+
+	"Should find maestro in chained port mode": function (test) {
+		var ports = [{
+			comName: "george",
+			vendorId: 0x1ffb
+		}, {
+			comName: "ringo"
+		}];
+
+		stubs.serialport.list = function(callback) {
+			callback(null, ports);
+		}
+
+		PololuMaestro.find(PololuMaestro.SERIAL_MODES.USB_CHAINED, function(error, maestro) {
+			test.ok(!error);
+			test.ok(maestro);
+
+			test.done();
+		});
 	}
 };

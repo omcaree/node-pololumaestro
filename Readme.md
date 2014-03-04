@@ -112,12 +112,16 @@ maestro.on("ready", function() {
 });
 
 // alternatively, attempt to auto-detect:
-PololuMaestro.find(PololuMaestro.SERIAL_MODES.USB_DUAL_PORT, function(maestro) {
+PololuMaestro.find(PololuMaestro.SERIAL_MODES.USB_DUAL_PORT, function(error, maestro) {
 	// ... do something
 });
 ```
 
 ## Version history
+
+### v3.0.0
+ * Breaking change - the callback for PololuMaestro#find now takes arguments `error, maestro` to be more inline with node conventions
+ * Not finding a Maestro no longer causes the process to exit, instead test for the error argument to PololuMaestro#find
 
 ### v2.1.2
  * Small tweak for OS X Mavericks compatibility

@@ -13,15 +13,16 @@
     "url": "git://github.com/omcaree/node-pololumaestro.git"
   },
   "dependencies": {
-    "serialport": "~1.2",
-    "winston": "~0.7"
+    "serialport": "^1.2",
+    "winston": "^0.7"
   },
   "devDependencies": {
-    "nodeunit": "~0.8.1",
-    "jsmockito": "~1.0.4",
-    "jshamcrest": "~0.7.0",
-    "istanbul": "~0.1.43",
-    "groc": ">=0.6.0"
+    "nodeunit": "^0.8",
+    "jsmockito": "^1.0",
+    "jshamcrest": "^0.7",
+    "istanbul": "^0.2",
+    "groc": "^0.6",
+    "proxyquire": "^0.5"
   },
   "keywords": [
     "node",
