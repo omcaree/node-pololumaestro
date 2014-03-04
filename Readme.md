@@ -43,6 +43,10 @@ var PololuMaestro = require("pololu-maestro");
 //create new instance, specifying control com port and optionally the baud rate
 var maestro = new PololuMaestro("COM17", 115200);
 
+maestro.on("disconnected", function() {
+	// yikes, someone pulled the plug
+});
+
 //wait until connection is ready
 maestro.on("ready", function() {
 	// set target of servo on channel 1 to 1500μs
@@ -100,7 +104,7 @@ maestro.on("ready", function() {
 	// pass an argument to a subroutine
 	maestro.restartScriptAtSubroutineWithParameter(1, 5);
 
-    // pass an argument to a subroute and read the result
+	// pass an argument to a subroute and read the result
 	maestro.restartScriptAtSubroutineWithParameter(1, 5, function(data) {
 		// data is a Buffer - http://nodejs.org/api/buffer.html
 	});
@@ -108,6 +112,11 @@ maestro.on("ready", function() {
 	// find out if any scripts are currently running
 	maestro.getScriptStatus(function(status) {
 		// status is a boolean
+	});
+
+	// close any serial ports the maestro has open
+	maestro.close(function() {
+		// invoked when serial port(s) are closed
 	});
 });
 

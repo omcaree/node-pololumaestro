@@ -268,5 +268,15 @@ module.exports = {
 		test.ok(invokedWriteOperation, "Did not invoke write operation!");
 
 		test.done();
+	},
+
+	"Should close port": function (test) {
+		when(this._mockSerialPort).close().then(function(callback) {
+			callback();
+		});
+
+		this._serialPortWrapper.close(function() {
+			test.done();
+		});
 	}
 };

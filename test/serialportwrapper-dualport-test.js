@@ -372,5 +372,45 @@ module.exports = {
 		test.ok(invokedWriteOperation, "Did not invoke write operation!");
 
 		test.done();
+	},
+
+	"Should only emit disconnected event once": function (test) {
+		var count = 0;
+
+		this._serialPortWrapper.on("disconnected", function() {
+			count++;
+
+			if(count == 2) {
+				test.fail("Should only have emitted one event!");
+			}
+		});
+
+		this._serialPortWrapper._connected = true;
+
+		// once for command port
+		this._serialPortWrapper._portDisconnected();
+
+		// and then again for ttl port
+		this._serialPortWrapper._portDisconnected();
+
+		setTimeout(function() {
+			test.equal(1, count);
+
+			test.done();
+		}, 1000);
+	},
+
+	"Should close both ports": function (test) {
+		when(this._mockTtlPort).close().then(function(callback) {
+			callback();
+		});
+
+		when(this._mockCommandPort).close().then(function(callback) {
+			callback();
+		});
+
+		this._serialPortWrapper.close(function() {
+			test.done();
+		});
 	}
 };
