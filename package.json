@@ -1,6 +1,6 @@
 {
   "name": "pololu-maestro",
-  "version": "3.1.0",
+  "version": "3.1.1",
   "description": "Module to take control of Pololu Maestro servo controllers",
   "main": "lib/pololumaestro.js",
   "scripts": {
