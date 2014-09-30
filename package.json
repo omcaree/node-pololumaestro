@@ -14,16 +14,16 @@
   },
   "dependencies": {
     "serialport": "^1.2",
-    "winston": "^0.7",
-    "async": "^0.2"
+    "winston": "^0.8",
+    "async": "^0.9"
   },
   "devDependencies": {
-    "nodeunit": "^0.8",
+    "nodeunit": "^0.9",
     "jsmockito": "^1.0",
     "jshamcrest": "^0.7",
-    "istanbul": "^0.2",
-    "groc": "^0.6",
-    "proxyquire": "^0.5"
+    "istanbul": "^0.3",
+    "groc": "^0.7",
+    "proxyquire": "^1.0"
   },
   "keywords": [
     "node",
